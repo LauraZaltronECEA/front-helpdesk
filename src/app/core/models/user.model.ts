@@ -4,6 +4,8 @@ export interface UserListResponse {
   fullname: string;
   email: string;
   role: string;
+  area: string;
+  areaId?: number | null;
   active: number;
 }
 

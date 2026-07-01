@@ -1,4 +1,4 @@
-import { Component, inject, signal, OnInit, OnDestroy } from '@angular/core';
+import { Component, inject, signal, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { DatePipe, Location } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -11,7 +11,7 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar } from '@angular/material/snack-bar';
-import { MatTabsModule } from '@angular/material/tabs';
+import { MatTabsModule, MatTabGroup } from '@angular/material/tabs';
 import { TicketService } from '../../../core/services/ticket.service';
 import { TicketDetailResponse, TicketUpdateDTO } from '../../../core/models/ticket.model';
 import { TicketChatComponent } from '../components/ticket-chat.component';
@@ -50,7 +50,7 @@ import { SignalRService } from '../../../core/services/signalr.service';
           </mat-card-header>
 
           <mat-card-content>
-            <mat-tab-group>
+            <mat-tab-group #tabGroup>
               <mat-tab label="Información">
                 <div class="info-tab">
                   <div class="info-grid">
@@ -62,6 +62,13 @@ import { SignalRService } from '../../../core/services/signalr.service';
                         <div><strong>Solución:</strong><p>{{ ticket()?.solution }}</p></div>
                       }
                     </div>
+                    @if (isViewer()) {
+                      <div class="chat-action">
+                        <button mat-raised-button color="primary" (click)="startChat()">
+                          <mat-icon>chat</mat-icon> Chatear con asistente
+                        </button>
+                      </div>
+                    }
                   </div>
 
                   @if (canEdit()) {
@@ -120,6 +127,7 @@ import { SignalRService } from '../../../core/services/signalr.service';
     .info-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .edit-section { margin-top: 32px; padding-top: 24px; border-top: 1px solid #e0e0e0; }
     .edit-section h3 { margin-bottom: 16px; }
+    .chat-action { margin-top: 24px; }
     .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
     .full-width { grid-column: 1 / -1; }
     .status-open { background: #fff3e0 !important; }
@@ -148,6 +156,8 @@ export class TicketDetailPage implements OnInit, OnDestroy {
 
   private ticketId = 0;
 
+  @ViewChild('tabGroup') tabGroup!: MatTabGroup;
+
   ngOnInit() {
     this.ticketId = Number(this.route.snapshot.paramMap.get('id'));
     this.ticketService.getDetail(this.ticketId).subscribe({
@@ -174,6 +184,17 @@ export class TicketDetailPage implements OnInit, OnDestroy {
   canEdit(): boolean {
     const user = this.authService.getUser();
     return user?.role === 'admin' || user?.role === 'agent';
+  }
+
+  isViewer(): boolean {
+    return this.authService.getUser()?.role === 'viewer';
+  }
+
+  startChat() {
+    this.signalRService.startNlpConversation(this.ticketId);
+    if (this.tabGroup) {
+      this.tabGroup.selectedIndex = 1;
+    }
   }
 
   updateTicket() {

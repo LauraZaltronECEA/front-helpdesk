@@ -50,6 +50,17 @@ import { Area } from '../../../core/models/area.model';
                   </mat-select>
                 </td>
               </ng-container>
+              <ng-container matColumnDef="area">
+                <th mat-header-cell *matHeaderCellDef>Área</th>
+                <td mat-cell *matCellDef="let u">
+                  <mat-select [value]="u.areaId" (selectionChange)="changeArea(u, $event.value)" class="area-select">
+                    <mat-option [value]="null">Sin área</mat-option>
+                    @for (a of areas(); track a.id) {
+                      <mat-option [value]="a.id">{{ a.area_Name }}</mat-option>
+                    }
+                  </mat-select>
+                </td>
+              </ng-container>
               <ng-container matColumnDef="active">
                 <th mat-header-cell *matHeaderCellDef>Activo</th>
                 <td mat-cell *matCellDef="let u">{{ u.active ? 'Sí' : 'No' }}</td>
@@ -72,18 +83,28 @@ import { Area } from '../../../core/models/area.model';
     h1 { font-weight: 400; margin-bottom: 24px; }
     .full-width { width: 100%; }
     .role-select { width: 120px; }
+    .area-select { width: 140px; }
   `]
 })
 export class UserListPage implements OnInit {
   private userService = inject(UserService);
+  private areaService = inject(AreaService);
   private snackBar = inject(MatSnackBar);
 
   loading = signal(true);
   users = signal<UserListResponse[]>([]);
-  displayedColumns = ['username', 'fullname', 'email', 'role', 'active'];
+  areas = signal<Area[]>([]);
+  displayedColumns = ['username', 'fullname', 'email', 'role', 'area', 'active'];
 
   ngOnInit() {
+    this.loadAreas();
     this.loadUsers();
+  }
+
+  loadAreas() {
+    this.areaService.getAll().subscribe({
+      next: (res) => this.areas.set(res)
+    });
   }
 
   loadUsers() {
@@ -98,6 +119,21 @@ export class UserListPage implements OnInit {
       next: (res) => {
         if (res.estado) {
           this.snackBar.open(`Rol de ${user.username} actualizado a ${newRole}`, 'Cerrar', { duration: 3000 });
+          this.loadUsers();
+        } else {
+          this.snackBar.open(res.mensaje || 'Error', 'Cerrar', { duration: 3000 });
+          this.loadUsers();
+        }
+      },
+      error: () => this.snackBar.open('Error de conexión', 'Cerrar', { duration: 3000 })
+    });
+  }
+
+  changeArea(user: UserListResponse, areaId: number | null) {
+    this.userService.updateArea(user.userId, { areaId }).subscribe({
+      next: (res) => {
+        if (res.estado) {
+          this.snackBar.open(`Área de ${user.username} actualizada`, 'Cerrar', { duration: 3000 });
           this.loadUsers();
         } else {
           this.snackBar.open(res.mensaje || 'Error', 'Cerrar', { duration: 3000 });

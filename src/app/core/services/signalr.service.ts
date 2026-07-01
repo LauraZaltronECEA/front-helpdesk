@@ -94,6 +94,12 @@ export class SignalRService {
     }
   }
 
+  async startNlpConversation(ticketId: number): Promise<void> {
+    if (await this.ensureConnected()) {
+      await this.hubConnection!.invoke('StartNlpConversation', ticketId);
+    }
+  }
+
   async sendNlpMessage(ticketId: number, content: string): Promise<void> {
     if (await this.ensureConnected()) {
       await this.hubConnection!.invoke('SendNlpMessage', ticketId, content);
